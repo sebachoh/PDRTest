@@ -6,7 +6,7 @@ import './App.css'
 function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [captureMode, setCaptureMode] = useState(false)
-  const [capturedPoint, setCapturedPoint] = useState(null)
+  const [capturedPoints, setCapturedPoints] = useState([])
   const [mapCenter, setMapCenter] = useState([51.505, -0.09])
 
   // Component to handle map events and updates
@@ -39,8 +39,8 @@ function App() {
     // Handle Map Clicks for Capture
     useMapEvents({
       click(e) {
-        if (captureMode) {
-          setCapturedPoint(e.latlng)
+        if (captureMode && capturedPoints.length < 3) {
+          setCapturedPoints(prev => [...prev, { lat: e.latlng.lat, lng: e.latlng.lng, id: Date.now() }])
         }
       },
     })
@@ -51,6 +51,14 @@ function App() {
     }, [mapCenter, map])
 
     return null
+  }
+
+  const removePoint = (id) => {
+    setCapturedPoints(prev => prev.filter(point => point.id !== id))
+  }
+
+  const clearAllPoints = () => {
+    setCapturedPoints([])
   }
 
   const handleSearch = async (e) => {
@@ -74,6 +82,36 @@ function App() {
 
   return (
     <div className="app-container">
+      {/* Sidebar for captured points */}
+      {capturedPoints.length > 0 && (
+        <div className="sidebar">
+          <div className="sidebar-header">
+            <h3>Puntos Capturados ({capturedPoints.length}/3)</h3>
+            <button onClick={clearAllPoints} className="clear-button">Limpiar Todo</button>
+          </div>
+          <div className="points-list">
+            {capturedPoints.map((point, index) => (
+              <div key={point.id} className="point-item">
+                <div className="point-header">
+                  <span className="point-number">Punto {index + 1}</span>
+                  <button onClick={() => removePoint(point.id)} className="remove-button">×</button>
+                </div>
+                <div className="point-coords">
+                  <div className="coord-row">
+                    <span className="coord-label">Lat:</span>
+                    <span className="coord-value">{point.lat.toFixed(6)}</span>
+                  </div>
+                  <div className="coord-row">
+                    <span className="coord-label">Lng:</span>
+                    <span className="coord-value">{point.lng.toFixed(6)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="controls-overlay">
         <form onSubmit={handleSearch} className="search-form">
           <input
@@ -91,6 +129,9 @@ function App() {
         >
           {captureMode ? 'Exit Capture' : 'Capture'}
         </button>
+        {capturedPoints.length === 3 && captureMode && (
+          <span className="max-points-message">Máximo 3 puntos alcanzado</span>
+        )}
       </div>
 
       <MapContainer center={mapCenter} zoom={13} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
@@ -99,15 +140,15 @@ function App() {
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <MapController />
-        {capturedPoint && (
-          <Marker position={capturedPoint}>
+        {capturedPoints.map((point, index) => (
+          <Marker key={point.id} position={[point.lat, point.lng]}>
             <Popup>
-              <strong>Captured Point</strong><br />
-              Lat: {capturedPoint.lat.toFixed(5)}<br />
-              Lng: {capturedPoint.lng.toFixed(5)}
+              <strong>Punto {index + 1}</strong><br />
+              Lat: {point.lat.toFixed(6)}<br />
+              Lng: {point.lng.toFixed(6)}
             </Popup>
           </Marker>
-        )}
+        ))}
       </MapContainer>
     </div>
   )
