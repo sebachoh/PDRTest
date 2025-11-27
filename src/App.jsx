@@ -22,8 +22,18 @@ function App() {
         map.scrollWheelZoom.disable()
         map.boxZoom.disable()
         map.keyboard.disable()
+        // Añadir estas líneas para deshabilitar el zoom con shift + arrastrar y con los botones +/-
+        map.zoomControl.disable()
+
         if (map.tap) map.tap.disable()
         map.getContainer().style.cursor = 'crosshair'
+
+        // Forzar que el zoom se mantenga en el nivel actual
+        map.options.scrollWheelZoom = false
+        map.options.doubleClickZoom = false
+        map.options.boxZoom = false
+        map.options.zoomControl = false
+
       } else {
         map.dragging.enable()
         map.touchZoom.enable()
@@ -31,9 +41,20 @@ function App() {
         map.scrollWheelZoom.enable()
         map.boxZoom.enable()
         map.keyboard.enable()
+        map.zoomControl.enable()
+
         if (map.tap) map.tap.enable()
         map.getContainer().style.cursor = ''
+
+        // Restaurar las opciones de zoom
+        map.options.scrollWheelZoom = true
+        map.options.doubleClickZoom = true
+        map.options.boxZoom = true
+        map.options.zoomControl = true
       }
+
+      // Actualizar el mapa
+      map.invalidateSize()
     }, [captureMode, map])
 
     // Handle Map Clicks for Capture
@@ -43,12 +64,22 @@ function App() {
           setCapturedPoints(prev => [...prev, { lat: e.latlng.lat, lng: e.latlng.lng, id: Date.now() }])
         }
       },
+
+      // Prevenir el zoom con la rueda del mouse
+      wheel(e) {
+        if (captureMode) {
+          e.originalEvent.preventDefault()
+          return false
+        }
+      }
     })
 
     // Fly to new center when it changes (from search only)
     useEffect(() => {
-      map.flyTo(mapCenter, 13)
-    }, [mapCenter, map])
+      if (!captureMode) { // Solo volar al centro si no estamos en modo captura
+        map.flyTo(mapCenter, 13)
+      }
+    }, [mapCenter, map, captureMode])
 
     return null
   }
@@ -192,7 +223,13 @@ function App() {
         )}
       </div>
 
-      <MapContainer center={mapCenter} zoom={13} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
+      <MapContainer
+        center={mapCenter}
+        zoom={13}
+        scrollWheelZoom={true}
+        style={{ height: '100%', width: '100%' }}
+        zoomControl={true} // Añadir esta prop
+      >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
