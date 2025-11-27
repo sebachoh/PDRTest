@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import './App.css'
 
@@ -39,13 +39,13 @@ function App() {
     // Handle Map Clicks for Capture
     useMapEvents({
       click(e) {
-        if (captureMode && capturedPoints.length < 3) {
+        if (captureMode && capturedPoints.length < 25) {
           setCapturedPoints(prev => [...prev, { lat: e.latlng.lat, lng: e.latlng.lng, id: Date.now() }])
         }
       },
     })
 
-    // Fly to new center when it changes (from search)
+    // Fly to new center when it changes (from search only)
     useEffect(() => {
       map.flyTo(mapCenter, 13)
     }, [mapCenter, map])
@@ -59,6 +59,57 @@ function App() {
 
   const clearAllPoints = () => {
     setCapturedPoints([])
+  }
+
+  const exportCoordinates = () => {
+    if (capturedPoints.length === 0) return
+
+    // Create text content with coordinates
+    let content = `Coordenadas Capturadas - ${new Date().toLocaleString()}\n`
+    content += `Total de puntos: ${capturedPoints.length}\n\n`
+
+    capturedPoints.forEach((point, index) => {
+      content += `Punto ${index + 1}:\n`
+      content += `  Latitud: ${point.lat.toFixed(6)}\n`
+      content += `  Longitud: ${point.lng.toFixed(6)}\n\n`
+    })
+
+    // Calculate extreme points
+    const northernmost = capturedPoints.reduce((max, p) => p.lat > max.lat ? p : max)
+    const southernmost = capturedPoints.reduce((min, p) => p.lat < min.lat ? p : min)
+    const easternmost = capturedPoints.reduce((max, p) => p.lng > max.lng ? p : max)
+    const westernmost = capturedPoints.reduce((min, p) => p.lng < min.lng ? p : min)
+
+    content += `\n${'='.repeat(50)}\n`
+    content += `PUNTOS EXTREMOS\n`
+    content += `${'='.repeat(50)}\n\n`
+
+    content += `Punto más al NORTE:\n`
+    content += `  Latitud: ${northernmost.lat.toFixed(6)}\n`
+    content += `  Longitud: ${northernmost.lng.toFixed(6)}\n\n`
+
+    content += `Punto más al SUR:\n`
+    content += `  Latitud: ${southernmost.lat.toFixed(6)}\n`
+    content += `  Longitud: ${southernmost.lng.toFixed(6)}\n\n`
+
+    content += `Punto más al ESTE:\n`
+    content += `  Latitud: ${easternmost.lat.toFixed(6)}\n`
+    content += `  Longitud: ${easternmost.lng.toFixed(6)}\n\n`
+
+    content += `Punto más al OESTE:\n`
+    content += `  Latitud: ${westernmost.lat.toFixed(6)}\n`
+    content += `  Longitud: ${westernmost.lng.toFixed(6)}\n`
+
+    // Create blob and download
+    const blob = new Blob([content], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `coordenadas_${Date.now()}.txt`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   const handleSearch = async (e) => {
@@ -86,7 +137,7 @@ function App() {
       {capturedPoints.length > 0 && (
         <div className="sidebar">
           <div className="sidebar-header">
-            <h3>Puntos Capturados ({capturedPoints.length}/3)</h3>
+            <h3>Puntos Capturados ({capturedPoints.length}/25)</h3>
             <button onClick={clearAllPoints} className="clear-button">Limpiar Todo</button>
           </div>
           <div className="points-list">
@@ -109,6 +160,13 @@ function App() {
               </div>
             ))}
           </div>
+          {!captureMode && (
+            <div className="sidebar-footer">
+              <button onClick={exportCoordinates} className="export-button">
+                📥 Exportar Coordenadas
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -129,8 +187,8 @@ function App() {
         >
           {captureMode ? 'Exit Capture' : 'Capture'}
         </button>
-        {capturedPoints.length === 3 && captureMode && (
-          <span className="max-points-message">Máximo 3 puntos alcanzado</span>
+        {capturedPoints.length === 25 && captureMode && (
+          <span className="max-points-message">Máximo 25 puntos alcanzado</span>
         )}
       </div>
 
@@ -140,6 +198,20 @@ function App() {
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <MapController />
+
+        {/* Draw polygon when 3 or more points are captured */}
+        {capturedPoints.length >= 3 && (
+          <Polygon
+            positions={capturedPoints.map(point => [point.lat, point.lng])}
+            pathOptions={{
+              color: '#4a90e2',
+              fillColor: '#4a90e2',
+              fillOpacity: 0.35,
+              weight: 3
+            }}
+          />
+        )}
+
         {capturedPoints.map((point, index) => (
           <Marker key={point.id} position={[point.lat, point.lng]}>
             <Popup>
