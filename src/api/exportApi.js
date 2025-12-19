@@ -99,14 +99,14 @@ export const downloadJSON = (data, filename = 'map_data.json') => {
 };
 
 export const downloadText = (areaPoints, restrictions) => {
-    let content = `REPORTE DE COORDENADAS - ${new Date().toLocaleString()}\n`;
+    let content = `COORDINATES REPORT - ${new Date().toLocaleString()}\n`;
     content += `${'='.repeat(50)}\n\n`;
 
-    // Area Principal
-    content += `ÁREA PRINCIPAL (${areaPoints.length} puntos)\n`;
+    // Main Area
+    content += `MAIN AREA (${areaPoints.length} points)\n`;
     content += `${'-'.repeat(20)}\n`;
     areaPoints.forEach((point, index) => {
-        content += `Punto ${index + 1}: ${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}\n`;
+        content += `Point ${index + 1}: ${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}\n`;
     });
     // Extreme Points for Area
     if (areaPoints.length > 0) {
@@ -115,34 +115,34 @@ export const downloadText = (areaPoints, restrictions) => {
         const easternmost = areaPoints.reduce((max, p) => p.lng > max.lng ? p : max);
         const westernmost = areaPoints.reduce((min, p) => p.lng < min.lng ? p : min);
 
-        content += `PUNTOS EXTREMOS (Área Principal)\n`;
+        content += `EXTREME POINTS (Main Area)\n`;
         content += `${'-'.repeat(20)}\n`;
-        content += `Norte: ${northernmost.lat.toFixed(6)}, ${northernmost.lng.toFixed(6)}\n`;
-        content += `Sur:   ${southernmost.lat.toFixed(6)}, ${southernmost.lng.toFixed(6)}\n`;
-        content += `Este:  ${easternmost.lat.toFixed(6)}, ${easternmost.lng.toFixed(6)}\n`;
-        content += `Oeste: ${westernmost.lat.toFixed(6)}, ${westernmost.lng.toFixed(6)}\n\n`;
+        content += `North: ${northernmost.lat.toFixed(6)}, ${northernmost.lng.toFixed(6)}\n`;
+        content += `South:   ${southernmost.lat.toFixed(6)}, ${southernmost.lng.toFixed(6)}\n`;
+        content += `East:  ${easternmost.lat.toFixed(6)}, ${easternmost.lng.toFixed(6)}\n`;
+        content += `West: ${westernmost.lat.toFixed(6)}, ${westernmost.lng.toFixed(6)}\n\n`;
     }
 
     // Restrictions
     if (restrictions.length > 0) {
-        content += `RESTRICCIONES (${restrictions.length} zonas)\n`;
+        content += `RESTRICTIONS (${restrictions.length} zones)\n`;
         content += `${'='.repeat(50)}\n`;
         restrictions.forEach((restriction, index) => {
-            content += `\nRestricción ${index + 1} (${restriction.length} puntos):\n`;
+            content += `\nRestriction ${index + 1} (${restriction.length} points):\n`;
             content += `${'-'.repeat(20)}\n`;
             restriction.forEach((point, pIndex) => {
                 content += `  R${index + 1}.P${pIndex + 1}: ${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}\n`;
             });
         });
     } else {
-        content += `No hay restricciones registradas.\n`;
+        content += `There are no restrictions registered.\n`;
     }
 
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `reporte_coordenadas_${Date.now()}.txt`;
+    link.download = `coordinates_report_${Date.now()}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
