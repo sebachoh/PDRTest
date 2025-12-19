@@ -233,14 +233,14 @@ function App() {
       {capturedPoints.length > 0 && (
         <div className="sidebar">
           <div className="sidebar-header">
-            <h3>Puntos Capturados ({capturedPoints.length}/25)</h3>
-            <button onClick={clearAllPoints} className="clear-button">Limpiar Todo</button>
+            <h3>Captured Points ({capturedPoints.length}/25)</h3>
+            <button onClick={clearAllPoints} className="clear-button">Clear All</button>
           </div>
           <div className="points-list">
             {capturedPoints.map((point, index) => (
               <div key={point.id} className="point-item">
                 <div className="point-header">
-                  <span className="point-number">Punto {index + 1}</span>
+                  <span className="point-number">Point {index + 1}</span>
                   <button onClick={() => removePoint(point.id)} className="remove-button">×</button>
                 </div>
                 <div className="point-coords">
@@ -261,18 +261,18 @@ function App() {
           {restrictions.length > 0 && (
             <div className="restrictions-list-section">
               <div className="sidebar-header" style={{ marginTop: '20px', background: 'linear-gradient(135deg, #c0392b 0%, #8e44ad 100%)' }}>
-                <h3>Restricciones ({restrictions.length})</h3>
-                <button onClick={() => setRestrictions([])} className="clear-button">Limpiar</button>
+                <h3>Restrictions ({restrictions.length})</h3>
+                <button onClick={() => setRestrictions([])} className="clear-button">Clear</button>
               </div>
               <div className="points-list" style={{ maxHeight: '200px' }}>
                 {restrictions.map((res, i) => (
                   <div key={i} className="point-item restriction-item">
                     <div className="point-header">
-                      <span className="point-number" style={{ color: '#e74c3c' }}>Restricción {i + 1}</span>
+                      <span className="point-number" style={{ color: '#e74c3c' }}>Restriction {i + 1}</span>
                       <button onClick={() => setRestrictions(prev => prev.filter((_, idx) => idx !== i))} className="remove-button">×</button>
                     </div>
                     <div className="coord-row">
-                      <span className="coord-label">Área:</span>
+                      <span className="coord-label">Area:</span>
                       <span className="coord-value">{calculatePolygonArea(res).toLocaleString(undefined, { maximumFractionDigits: 2 })} m²</span>
                     </div>
                   </div>
@@ -285,7 +285,7 @@ function App() {
             <div className="sidebar-footer">
               <div className="export-buttons">
                 <button onClick={handleExportText} className="export-button">
-                  � Reporte (TXT)
+                  📝 Report (TXT)
                 </button>
                 <button onClick={handleExportJSON} className="export-button" style={{ marginTop: '10px', backgroundColor: '#8e44ad' }}>
                   ⚙️ API Data (JSON)
@@ -299,7 +299,7 @@ function App() {
                     style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                   />
                   <label htmlFor="showGrid" style={{ fontSize: '13px', color: '#333', cursor: 'pointer', userSelect: 'none' }}>
-                    Visualizar Puntos Internos
+                    Visualize internal points
                   </label>
                 </div>
               </div>
@@ -321,7 +321,7 @@ function App() {
           borderRadius: '10px',
           zIndex: 2000
         }}>
-          Calculando puntos...
+          Calculating points...
         </div>
       )}
 
@@ -342,7 +342,7 @@ function App() {
             className={`capture-button ${captureMode ? 'active' : ''}`}
             onClick={toggleCaptureMode}
           >
-            {captureMode ? 'Terminar Captura' : 'Capturar'}
+            {captureMode ? 'End Capture' : 'Capture'}
           </button>
 
           {capturedPoints.length >= 3 && (
@@ -350,7 +350,7 @@ function App() {
               className={`capture-button restriction-button ${restrictionMode ? 'active' : ''}`}
               onClick={toggleRestrictionMode}
             >
-              {restrictionMode ? 'Terminar Restricción' : 'Agregar Restricción'}
+              {restrictionMode ? 'End Restriction' : 'Add Restriction'}
             </button>
           )}
 
@@ -358,7 +358,7 @@ function App() {
             <div className="metrics-box">
               {capturedPoints.length >= 3 && (
                 <div className="metric-item">
-                  <span className="metric-label">Área:</span>
+                  <span className="metric-label">Area:</span>
                   <span className="metric-value">{totalArea.toLocaleString(undefined, { maximumFractionDigits: 2 })} m²</span>
                   {restrictionArea > 0 && (
                     <span className="metric-subtext">(Restricción: -{restrictionArea.toLocaleString(undefined, { maximumFractionDigits: 2 })} m²)</span>
@@ -366,7 +366,7 @@ function App() {
                 </div>
               )}
               <div className="metric-item">
-                <span className="metric-label">Perímetro:</span>
+                <span className="metric-label">Perimeter:</span>
                 <span className="metric-value">{perimeter.toLocaleString(undefined, { maximumFractionDigits: 2 })} m</span>
               </div>
             </div>
@@ -374,7 +374,7 @@ function App() {
         </div>
 
         {capturedPoints.length === 25 && captureMode && (
-          <span className="max-points-message">Máximo 25 puntos alcanzado</span>
+          <span className="max-points-message">Maximum 25 points reached</span>
         )}
       </div>
 
@@ -431,7 +431,7 @@ function App() {
             {currentRestriction.map((point, index) => (
               <Marker key={point.id} position={[point.lat, point.lng]}>
                 <Popup>
-                  <strong>Restricción Punto {index + 1}</strong>
+                  <strong>Restriction Point {index + 1}</strong>
                 </Popup>
               </Marker>
             ))}
@@ -456,7 +456,7 @@ function App() {
         {capturedPoints.map((point, index) => (
           <Marker key={point.id} position={[point.lat, point.lng]}>
             <Popup>
-              <strong>Punto {index + 1}</strong><br />
+              <strong>Point {index + 1}</strong><br />
               Lat: {point.lat.toFixed(6)}<br />
               Lng: {point.lng.toFixed(6)}
             </Popup>
