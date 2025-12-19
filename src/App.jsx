@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Polygon, CircleMarker, useMap, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import './App.css'
+import { downloadText, downloadJSON, generateExportData, generateGridPoints } from './api/exportApi'
 
 // Helper function to calculate distance between two points in meters (Haversine formula)
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -137,6 +138,26 @@ function App() {
   const [restrictions, setRestrictions] = useState([]) // Array of arrays of points
   const [currentRestriction, setCurrentRestriction] = useState([])
 
+  // Grid Visualization State
+  const [showGrid, setShowGrid] = useState(false)
+  const [visibleGridPoints, setVisibleGridPoints] = useState([])
+  const [isCalculating, setIsCalculating] = useState(false)
+
+  // Calculate grid points when needed
+  useEffect(() => {
+    if (showGrid && capturedPoints.length >= 3) {
+      setIsCalculating(true)
+      // Small timeout to allow UI to render loading state
+      setTimeout(() => {
+        const points = generateGridPoints(capturedPoints, restrictions, 5) // 5 meters resolution
+        setVisibleGridPoints(points)
+        setIsCalculating(false)
+      }, 100)
+    } else {
+      setVisibleGridPoints([])
+    }
+  }, [showGrid, capturedPoints, restrictions])
+
   const removePoint = (id) => {
     setCapturedPoints(prev => prev.filter(point => point.id !== id))
   }
@@ -147,55 +168,15 @@ function App() {
     setCurrentRestriction([])
   }
 
-  const exportCoordinates = () => {
+  const handleExportText = () => {
     if (capturedPoints.length === 0) return
+    downloadText(capturedPoints, restrictions)
+  }
 
-    // Create text content with coordinates
-    let content = `Coordenadas Capturadas - ${new Date().toLocaleString()}\n`
-    content += `Total de puntos: ${capturedPoints.length}\n\n`
-
-    capturedPoints.forEach((point, index) => {
-      content += `Punto ${index + 1}:\n`
-      content += `  Latitud: ${point.lat.toFixed(6)}\n`
-      content += `  Longitud: ${point.lng.toFixed(6)}\n\n`
-    })
-
-    // Calculate extreme points
-    const northernmost = capturedPoints.reduce((max, p) => p.lat > max.lat ? p : max)
-    const southernmost = capturedPoints.reduce((min, p) => p.lat < min.lat ? p : min)
-    const easternmost = capturedPoints.reduce((max, p) => p.lng > max.lng ? p : max)
-    const westernmost = capturedPoints.reduce((min, p) => p.lng < min.lng ? p : min)
-
-    content += `\n${'='.repeat(50)}\n`
-    content += `PUNTOS EXTREMOS\n`
-    content += `${'='.repeat(50)}\n\n`
-
-    content += `Punto más al NORTE:\n`
-    content += `  Latitud: ${northernmost.lat.toFixed(6)}\n`
-    content += `  Longitud: ${northernmost.lng.toFixed(6)}\n\n`
-
-    content += `Punto más al SUR:\n`
-    content += `  Latitud: ${southernmost.lat.toFixed(6)}\n`
-    content += `  Longitud: ${southernmost.lng.toFixed(6)}\n\n`
-
-    content += `Punto más al ESTE:\n`
-    content += `  Latitud: ${easternmost.lat.toFixed(6)}\n`
-    content += `  Longitud: ${easternmost.lng.toFixed(6)}\n\n`
-
-    content += `Punto más al OESTE:\n`
-    content += `  Latitud: ${westernmost.lat.toFixed(6)}\n`
-    content += `  Longitud: ${westernmost.lng.toFixed(6)}\n`
-
-    // Create blob and download
-    const blob = new Blob([content], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `coordenadas_${Date.now()}.txt`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+  const handleExportJSON = () => {
+    if (capturedPoints.length === 0) return
+    const data = generateExportData(capturedPoints, restrictions)
+    downloadJSON(data)
   }
 
   const handleSearch = async (e) => {
@@ -302,11 +283,45 @@ function App() {
 
           {!captureMode && !restrictionMode && (
             <div className="sidebar-footer">
-              <button onClick={exportCoordinates} className="export-button">
-                📥 Exportar Coordenadas
-              </button>
+              <div className="export-buttons">
+                <button onClick={handleExportText} className="export-button">
+                  � Reporte (TXT)
+                </button>
+                <button onClick={handleExportJSON} className="export-button" style={{ marginTop: '10px', backgroundColor: '#8e44ad' }}>
+                  ⚙️ API Data (JSON)
+                </button>
+                <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px', background: '#f8f9fa', borderRadius: '8px' }}>
+                  <input
+                    type="checkbox"
+                    id="showGrid"
+                    checked={showGrid}
+                    onChange={(e) => setShowGrid(e.target.checked)}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="showGrid" style={{ fontSize: '13px', color: '#333', cursor: 'pointer', userSelect: 'none' }}>
+                    Visualizar Puntos Internos
+                  </label>
+                </div>
+              </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Loading Overlay */}
+      {isCalculating && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'rgba(0,0,0,0.7)',
+          color: 'white',
+          padding: '20px',
+          borderRadius: '10px',
+          zIndex: 2000
+        }}>
+          Calculando puntos...
         </div>
       )}
 
@@ -422,6 +437,21 @@ function App() {
             ))}
           </>
         )}
+
+        {/* Grid Visualization */}
+        {showGrid && visibleGridPoints.map((point, index) => (
+          <CircleMarker
+            key={`grid-${index}`}
+            center={[point.lat, point.lng]}
+            radius={3}
+            pathOptions={{
+              color: 'red',
+              fillColor: 'red',
+              fillOpacity: 0.8,
+              stroke: false
+            }}
+          />
+        ))}
 
         {capturedPoints.map((point, index) => (
           <Marker key={point.id} position={[point.lat, point.lng]}>
